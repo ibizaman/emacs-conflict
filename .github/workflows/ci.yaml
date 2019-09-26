@@ -1,0 +1,15 @@
+name: CI
+
+on: [push]
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install Ubuntu packages
+      run: sudo apt update && sudo apt install -y --no-install-recommends emacs
+    - uses: actions/checkout@v1
+    - name: Run tests and linters
+      run: make all

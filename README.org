@@ -1,3 +1,5 @@
+[[https://github.com/ibizaman/emacs-conflicts/workflows/CI/badge.svg]]
+
 * Goal
 
 ~emacs-conflict~ is used to quickly find and resolve conflicts in
