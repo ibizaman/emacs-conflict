@@ -1,0 +1,37 @@
+* Goal
+
+~emacs-conflict~ is used to quickly find and resolve conflicts in
+external tools like Syncthing.
+
+* Installation
+
+Clone the repo locally and ~(require emacs-conflict)~ or with
+~use-package~ and [[https://github.com/raxod502/straight.el][straight]]:
+
+#+BEGIN_SRC elisp
+(use-package emacs-conflict
+  :straight (emacs-conflict :type git :host github :repo "ibizaman/emacs-conflict" :branch "master"))
+#+END_SRC
+
+* Usage
+
+For now, only Syncthing is supported.
+
+Call ~M-x emacs-conflict-resolve-conflicts~, it will prompt you for a
+directory to search conflicts recursively in. Then it will present a
+list of all conflicts. Pick one and it will open an ~ediff~ session
+comparing the conflicting files.
+
+A more interactive usage is to call ~M-x
+emacs-conflict-show-conflicts-dired~, it will prompt you for a
+directory to search conflicts recursively in. Then it will present a
+list of all conflicts in a dired directory which will be populated
+asynchronously. Hover over one and call ~M-x
+emacs-conflict-resolve-conflict-dired~ and it will open an ~ediff~
+session comparing the conflicting files.
+
+Recommended bindings are:
+#+BEGIN_SRC elisp
+(global-set-key (kbd "C-c r r") 'emacs-conflict-resolve-conflicts)
+(global-set-key (kbd "C-c r d") 'emacs-conflict-resolve-conflict-dired)
+#+END_SRC
