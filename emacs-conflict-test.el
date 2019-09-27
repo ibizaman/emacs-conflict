@@ -20,6 +20,18 @@
 
 ;;; Code:
 
+(ert-deftest emacs-conflict-find-conflict ()
+  "Tests finding conflict file."
+  (should (equal
+           (mapcar 'file-relative-name (emacs-conflict--get-sync-conflicts "."))
+           '("tests/conflicts/one.sync-conflict-AABBCC.el"))))
+
+(ert-deftest emacs-conflict-get-normal-file ()
+  "Tests finding back the normal file from the conflict file."
+  (should (equal
+           (emacs-conflict--get-normal-filename "tests/conflicts/one.sync-conflict-AABBCC.el")
+           "tests/conflicts/one.el")))
+
 (provide 'emacs-conflict-test)
 
 ;;; emacs-conflict-test.el ends here
