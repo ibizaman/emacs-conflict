@@ -15,6 +15,8 @@ Clone the repo locally and ~(require emacs-conflict)~ or with
   :straight (emacs-conflict :type git :host github :repo "ibizaman/emacs-conflict" :branch "master"))
 #+END_SRC
 
+This package requires Emacs >= 25.
+
 * Usage
 
 For now, only Syncthing is supported.
