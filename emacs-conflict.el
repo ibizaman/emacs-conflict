@@ -1,4 +1,4 @@
-;;; emacs-conflict --- quickly find and resolve conflicts in external tools like Syncthing  -*- lexical-binding:t -*-
+;;; emacs-conflict.el --- quickly find and resolve conflicts in external tools like Syncthing  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2019 Pierre Penninckx
 
