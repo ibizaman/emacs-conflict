@@ -94,7 +94,7 @@ Avoid `setq' on this otherwise.")
            1))
          (current (version-to-list current-string))
          (check (version-to-list version-string)))
-    (i (version-list-< current check)
+    (if (version-list-< current check)
       (user-error "This feature requires Syncthing version %s and %s is installed. Please upgrade Syncthing to use this feature."
                   version-string
                   current-string))))
