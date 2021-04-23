@@ -86,13 +86,13 @@
   (directory-files-recursively directory "\\.sync-conflict-"))
 
 
-(defvar emacs-conflict--conflict-history
-  "Completion conflict history")
+(defvar emacs-conflict--conflict-history nil
+  "Completion conflict history.")
 
 (defun emacs-conflict--pick-a-conflict (conflicts)
   "Let user choose the next conflict from CONFLICTS to investigate."
   (completing-read "Choose the conflict to investigate: " conflicts
-                   nil t nil emacs-conflict--conflict-history))
+                   nil t nil 'emacs-conflict--conflict-history))
 
 
 (defun emacs-conflict--get-normal-filename (conflict)
