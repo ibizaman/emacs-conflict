@@ -22,7 +22,7 @@
 ;;; Commentary:
 
 ;; `emacs-conflict' is used to quickly find and resolve conflicts in
-;; external tools like Syncthing.
+;; external tools like Syncthing, Nextcloud or Pacman.
 ;;
 ;; `emacs-conflict-resolve-conflicts' searches a given directory for
 ;; all conflict files and provides a list of all of them.  The
@@ -37,9 +37,12 @@
 ;; In both cases, the conflict will be resolved using an `ediff'
 ;; session.
 ;;
-;; The tool only supports `Syncthing' [1] for now.
+;; The tool supports `Syncthing' [1], 'Nextcloud' [2] and 'Pacman' [3]
+;; for now.
 ;;
 ;; [1] https://docs.syncthing.net/users/faq.html#what-if-there-is-a-conflict
+;; [2] https://docs.nextcloud.com/desktop/2.6/conflicts.html
+;; [3] https://wiki.archlinux.org/title/Pacman/Pacnew_and_Pacsave
 
 ;;; Code:
 
@@ -48,6 +51,24 @@
 (require 'dired-aux)
 (require 'ediff)
 
+
+(defgroup conflict nil
+  "Find conflicting files"
+  :group 'files
+  :prefix "emacs-conflict")
+
+(defcustom emacs-conflict-find-regexes
+  '(("syncthing" "\\.sync-conflict-.*\\(\\.\\)" "\\1")
+    ("nextcloud" " (conflicted copy .*)\\(\\.\\)" "\\1")
+    ("pacman" "\\(?:\\.\\)pacnew$" ""))
+  "Regexes to identify a file as a conflict."
+  :type '(alist :key-type string :value-type (list regexp regexp))
+  :group 'conflict)
+
+
+(defun emacs-conflict--find-regexes ()
+  "Merge all regexes into one."
+  (mapconcat (lambda (ls) (nth 1 ls)) emacs-conflict-find-regexes "\\|"))
 
 (defun emacs-conflict-resolve-conflicts (directory)
   "Resolve all conflicts under given DIRECTORY."
@@ -60,7 +81,7 @@
 (defun emacs-conflict-show-conflicts-dired (directory)
   "Open dired buffer at DIRECTORY showing all syncthing conflicts."
   (interactive "D")
-  (find-name-dired directory "*.sync-conflict-*"))
+  (find-lisp-find-dired directory (emacs-conflict--find-regexes)))
 
 
 (defun emacs-conflict-resolve-conflict-dired (&optional arg)
@@ -83,7 +104,7 @@
 
 (defun emacs-conflict--get-sync-conflicts (directory)
   "Return a list of all sync conflict files in a DIRECTORY."
-  (directory-files-recursively directory "\\.sync-conflict-"))
+  (directory-files-recursively directory (emacs-conflict--find-regexes)))
 
 
 (defvar emacs-conflict--conflict-history nil
@@ -97,7 +118,15 @@
 
 (defun emacs-conflict--get-normal-filename (conflict)
   "Get non-conflict filename matching the given CONFLICT."
-  (replace-regexp-in-string "\\.sync-conflict-.*\\(\\..*\\)$" "\\1" conflict))
+  (let (normal-filename)
+	(dolist (r emacs-conflict-find-regexes normal-filename)
+	  (let ((regex (nth 1 r))
+			(replacement (nth 2 r)))
+		(when (and
+			   (null normal-filename)
+			   (not (null (string-match-p regex conflict))))
+		  (setq normal-filename
+				(replace-regexp-in-string regex replacement conflict)))))))
 
 
 (defun emacs-conflict--resolve-ediff (&optional files quit-hook)

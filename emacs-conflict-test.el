@@ -24,13 +24,21 @@
   "Tests finding conflict file."
   (should (equal
            (mapcar 'file-relative-name (emacs-conflict--get-sync-conflicts "."))
-           '("tests/conflicts/one.sync-conflict-AABBCC.el"))))
+           '("tests/conflicts/one.sync-conflict-AABBCC.el"
+			 "tests/conflicts/three.el.pacnew"
+			 "tests/conflicts/two (conflicted copy 2021-05-28 225359).el"))))
 
 (ert-deftest emacs-conflict-get-normal-file ()
   "Tests finding back the normal file from the conflict file."
-  (should (equal
-           (emacs-conflict--get-normal-filename "tests/conflicts/one.sync-conflict-AABBCC.el")
-           "tests/conflicts/one.el")))
+  (should
+	(equal
+	 (mapcar 'emacs-conflict--get-normal-filename
+			 '("tests/conflicts/one.sync-conflict-AABBCC.el"
+			   "tests/conflicts/two (conflicted copy 2021-05-28 225359).el"
+			   "tests/conflicts/three.el.pacnew"))
+	 '("tests/conflicts/one.el"
+	   "tests/conflicts/two.el"
+	   "tests/conflicts/three.el"))))
 
 (provide 'emacs-conflict-test)
 
