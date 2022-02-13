@@ -58,17 +58,23 @@
   :prefix "emacs-conflict")
 
 (defcustom emacs-conflict-find-regexes
-  '(("syncthing" "\\.sync-conflict-.*\\(\\.\\)" "\\1")
-    ("nextcloud" " (conflicted copy .*)\\(\\.\\)" "\\1")
-    ("pacman" "\\(?:\\.\\)pacnew$" ""))
+  '(("syncthing" ((:from-conflict-regexp "\\.sync-conflict-.*\\(\\.\\)")
+                  (:from-conflict "\\1")
+                  (:to-conflict-regexp "\\.[^.]+$")
+                  (:to-conflict (lambda (s) (concat ".sync-conflict-" s)))))
+    ("nextcloud" ((:from-conflict-regexp " (conflicted copy .*)\\(\\.\\)")
+                  (:from-conflict "\\1")))
+    ("pacman" ((:from-conflict-regexp "\\(?:\\.\\)pacnew$")
+               (:from-conflict ""))))
   "Regexes to identify a file as a conflict."
-  :type '(alist :key-type string :value-type (list regexp regexp))
+  :type '(alist :key-type string :value-type (alist :key-type keyword :value-type (or regexp functionp)))
   :group 'conflict)
-
 
 (defun emacs-conflict--find-regexes ()
   "Merge all regexes into one."
-  (mapconcat (lambda (ls) (nth 1 ls)) emacs-conflict-find-regexes "\\|"))
+  (mapconcat (lambda (ls)
+               (car (alist-get :from-conflict-regexp (cadr ls))))
+             emacs-conflict-find-regexes "\\|"))
 
 (defun emacs-conflict-resolve-conflicts (directory)
   "Resolve all conflicts under given DIRECTORY."
@@ -119,14 +125,25 @@
 (defun emacs-conflict--get-normal-filename (conflict)
   "Get non-conflict filename matching the given CONFLICT."
   (let (normal-filename)
-	(dolist (r emacs-conflict-find-regexes normal-filename)
-	  (let ((regex (nth 1 r))
-			(replacement (nth 2 r)))
-		(when (and
-			   (null normal-filename)
-			   (not (null (string-match-p regex conflict))))
-		  (setq normal-filename
-				(replace-regexp-in-string regex replacement conflict)))))))
+    (dolist (r emacs-conflict-find-regexes normal-filename)
+      (let* ((r (cadr r))
+             (regex (car (alist-get :from-conflict-regexp r)))
+             (replacement (car (alist-get :from-conflict r))))
+        (when (and
+               (null normal-filename)
+               (not (null (string-match-p regex conflict))))
+          (setq normal-filename
+                (replace-regexp-in-string regex replacement conflict)))))))
+
+
+(defun emacs-conflict--get-conflict-filename (filename type)
+  "Get conflict filename matching the given FILENAME for TYPE of conflict."
+  (let* ((r (car (alist-get type emacs-conflict-find-regexes nil nil #'string=)))
+         (regex (car (alist-get :to-conflict-regexp r)))
+         (replacement (car (alist-get :to-conflict r))))
+    (if (and regex replacement)
+        (replace-regexp-in-string regex replacement filename)
+      (throw 'conflict-not-implemented filename))))
 
 
 (defun emacs-conflict--resolve-ediff (&optional files quit-hook)
@@ -155,6 +172,62 @@ QUIT-HOOK, if given is called ."
                       (when quit-hook (funcall quit-hook))
                       (set-window-configuration wnd))))
       (error "No more than 2 files should be marked"))))
+
+
+(defcustom emacs-conflict-default-conflict-type "syncthing"
+  "Default type to rename buffers to."
+  :type 'string
+  :group 'conflict)
+
+
+(defun emacs-conflict-rename-current-buffer-file-to-sync-conflict (file &optional type)
+  "Rename the current FILE so that it register's as a sync conflict with itself.
+Calling this on a conflict will rename it to its normal file name.
+With TYPE provided or set via 'emacs-conflict-default-conflict-type', don't
+ask for type."
+  (interactive (list (buffer-file-name)
+                     emacs-conflict-default-conflict-type))
+  (let* ((old-filename file)
+         (old-short-name (file-name-nondirectory old-filename))
+         (old-dir (file-name-directory old-filename))
+         (new-name (if (string-match-p (emacs-conflict--find-regexes) old-filename)
+                       (emacs-conflict--get-normal-filename old-filename)
+                     (emacs-conflict--get-conflict-filename old-filename (or type (completing-read "Conflict type: " emacs-conflict-find-regexes)))))
+         (new-dir (file-name-directory new-name))
+         (new-short-name (file-name-nondirectory new-name))
+         (file-moved-p (not (string-equal new-dir old-dir)))
+         (file-renamed-p (not (string-equal new-short-name old-short-name))))
+    (cond ((get-buffer new-name)
+           (error "A buffer named '%s' already exists!" new-name))
+          (t
+           (let ((old-directory (file-name-directory new-name)))
+             (when (and (not (file-exists-p old-directory))
+                        (yes-or-no-p
+                         (format "Create directory '%s'?" old-directory)))
+               (make-directory old-directory t)))
+           (rename-file old-filename new-name 1)
+           (rename-buffer new-name)
+           (set-visited-file-name new-name)
+           (set-buffer-modified-p nil)
+           (when (fboundp 'recentf-add-file)
+             (recentf-add-file new-name)
+             (recentf-remove-if-non-kept old-filename))
+           (when (and (require 'projectile nil 'noerror)
+                      (projectile-project-p))
+             (call-interactively #'projectile-invalidate-cache))
+           (message (cond ((and file-moved-p file-renamed-p)
+                           (concat "File Moved & Renamed\n"
+                                   "From: " old-filename "\n"
+                                   "To:   " new-name))
+                          (file-moved-p
+                           (concat "File Moved\n"
+                                   "From: " old-filename "\n"
+                                   "To:   " new-name))
+                          (file-renamed-p
+                           (concat "File Renamed\n"
+                                   "From: " old-short-name "\n"
+                                   "To:   " new-short-name))))))))
+
 
 (provide 'emacs-conflict)
 ;;; emacs-conflict.el ends here

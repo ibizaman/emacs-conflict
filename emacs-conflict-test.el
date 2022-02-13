@@ -40,6 +40,21 @@
 	   "tests/conflicts/two.el"
 	   "tests/conflicts/three.el"))))
 
+(ert-deftest emacs-conflict-get-conflict-file ()
+  "Tests finding back the normal file from the conflict file."
+  (should
+   (equal
+    (mapcar (lambda (args) (let ((filename (nth 0 args))
+                            (type (nth 1 args)))
+                        (catch 'conflict-not-implemented
+                          (emacs-conflict--get-conflict-filename filename type))))
+            '(("tests/conflicts/one.el" "syncthing")
+              ("tests/conflicts/two.el" "nextcloud")
+              ("tests/conflicts/three.el" "pacman")))
+    '("tests/conflicts/one.sync-conflict-.el"
+      "tests/conflicts/two (conflicted copy 2021-05-28 225359).el"
+      "tests/conflicts/three.el.pacnew"))))
+
 (provide 'emacs-conflict-test)
 
 ;;; emacs-conflict-test.el ends here
