@@ -58,7 +58,7 @@
   :prefix "emacs-conflict")
 
 (defcustom emacs-conflict-find-regexes
-  '(("syncthing" "\\.sync-conflict-.*\\(\\.?\\)" "\\1")
+  '(("syncthing" "\\.sync-conflict-[^.]*\\(\\.?\\)" "\\1")
     ("nextcloud" " (conflicted copy .*)\\(\\.?\\)" "\\1")
     ("pacman" "\\(?:\\.\\)pacnew$" ""))
   "Regexes to identify a file as a conflict."
